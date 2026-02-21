@@ -2,48 +2,61 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mini Fórum</title>
+<title>Mini Fórum Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{font-family:Arial;padding:30px;background:#111;color:white}
-#chat{background:#222;padding:15px;height:300px;overflow:auto}
+body{background:#111;color:white;font-family:Arial;padding:30px}
+#chat{background:#222;height:300px;overflow:auto;padding:10px}
 input{width:80%;padding:10px}
 button{padding:10px}
 </style>
 </head>
 <body>
 
-<h2>Mini Fórum</h2>
+<h2>Mini Fórum Online</h2>
 
 <div id="chat"></div>
 
-<input type="text" id="msg" placeholder="Digite mensagem">
+<input id="msg" placeholder="Digite mensagem">
 <button onclick="enviar()">Enviar</button>
 
 <script>
 
+const supabaseUrl = "https://ggfsvnbdgywybfuftoxr.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnZnN2bmJkZ3l3eWJmdWZ0b3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODI5NTEsImV4cCI6MjA4NzI1ODk1MX0.XrWGUNPgdlvenK08xt1WupCufwZHBo0wyI1Z_Idihkk";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
 async function carregar(){
-    const res = await fetch('/mensagens');
-    const dados = await res.json();
-    const chat = document.getElementById("chat");
-    chat.innerHTML = "";
-    dados.forEach(m=>{
-        chat.innerHTML += `<p>${m.texto}</p>`;
-    });
+  const { data } = await supabase
+    .from("mensagens")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
+
+  data.forEach(m=>{
+    chat.innerHTML += `<p>${m.texto}</p>`;
+  });
 }
 
 async function enviar(){
-    const texto = document.getElementById("msg").value;
-    if(!texto) return;
-    await fetch('/mensagens',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({texto})
-    });
-    document.getElementById("msg").value="";
-    carregar();
+  const texto = document.getElementById("msg").value;
+  if(!texto) return;
+
+  await supabase.from("mensagens").insert([{ texto }]);
+  document.getElementById("msg").value="";
+  carregar();
 }
 
-setInterval(carregar,5000);
+supabase
+  .channel('mensagens')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens' }, payload => {
+    carregar();
+  })
+  .subscribe();
+
 carregar();
 
 </script>
