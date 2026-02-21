@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mini Fórum</title>
+<style>
+body{font-family:Arial;padding:30px;background:#111;color:white}
+#chat{background:#222;padding:15px;height:300px;overflow:auto}
+input{width:80%;padding:10px}
+button{padding:10px}
+</style>
+</head>
+<body>
+
+<h2>Mini Fórum</h2>
+
+<div id="chat"></div>
+
+<input type="text" id="msg" placeholder="Digite mensagem">
+<button onclick="enviar()">Enviar</button>
+
+<script>
+
+async function carregar(){
+    const res = await fetch('/mensagens');
+    const dados = await res.json();
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+    dados.forEach(m=>{
+        chat.innerHTML += `<p>${m.texto}</p>`;
+    });
+}
+
+async function enviar(){
+    const texto = document.getElementById("msg").value;
+    if(!texto) return;
+    await fetch('/mensagens',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({texto})
+    });
+    document.getElementById("msg").value="";
+    carregar();
+}
+
+setInterval(carregar,5000);
+carregar();
+
+</script>
+
+</body>
+</html>
